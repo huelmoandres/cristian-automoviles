@@ -31,6 +31,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri -> target
+          cache-on-failure: true
       - name: Validate release destination
         run: node scripts/prepare-github-release.mjs check
         env:
@@ -54,10 +55,27 @@ jobs:
           cargo test
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Build signed Windows installer
+        id: build
         run: node scripts/release-update.mjs --bundles nsis
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+      - name: Prepare verified release artifacts
+        run: node scripts/prepare-github-release.mjs prepare
+      - name: Preserve signed installer artifacts
+        if: ${{ always() && steps.build.outcome == 'success' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: windows-installer-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            src-tauri/target/updates/github/*.exe
+            src-tauri/target/updates/github/*.exe.sig
+            src-tauri/target/updates/github/latest.json
+            src-tauri/target/release/bundle/nsis/*.exe
+            src-tauri/target/release/bundle/nsis/*.exe.sig
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
       - name: Verify artifacts and create release draft
         run: node scripts/prepare-github-release.mjs draft
         env:

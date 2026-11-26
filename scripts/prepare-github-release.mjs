@@ -45,6 +45,8 @@ async function existingRelease(context, run) {
     await run([
       "api",
       `repos/${context.repository}/releases?per_page=100`,
+      "--header",
+      "Cache-Control: no-cache",
       "--paginate",
       "--slurp",
     ]),
@@ -100,7 +102,8 @@ export async function prepareArtifacts(context, root = projectRoot) {
 
 export async function createDraft(context, files, env = process.env, run = github) {
   const destination = await checkDestination(context, run);
-  if (!destination.release) {
+  let release = destination.release;
+  if (!release) {
     const sourceRepository = env.GITHUB_REPOSITORY;
     const target =
       sourceRepository?.toLowerCase() === context.repository.toLowerCase()
@@ -113,24 +116,38 @@ export async function createDraft(context, files, env = process.env, run = githu
     ) {
       throw new Error("No se pudo determinar el commit o la rama de destino de la release.");
     }
-    await run([
-      "release",
-      "create",
-      context.tag,
-      "--repo",
-      context.repository,
-      "--draft",
-      "--target",
-      target,
-      "--title",
-      `Cristian Automóviles ${context.tag}`,
-      "--notes",
-      "Windows x64 installer with signed in-app updates.",
-    ]);
+    release = JSON.parse(
+      await run([
+        "api",
+        "--method",
+        "POST",
+        `repos/${context.repository}/releases`,
+        "--raw-field",
+        `tag_name=${context.tag}`,
+        "--raw-field",
+        `target_commitish=${target}`,
+        "--raw-field",
+        `name=Cristian Automóviles ${context.tag}`,
+        "--raw-field",
+        "body=Windows x64 installer with signed in-app updates.",
+        "--field",
+        "draft=true",
+      ]),
+    );
   }
-  // Recheck before replacing draft assets; published releases are immutable in this workflow.
-  const release = await existingRelease(context, run);
-  if (!release?.draft)
+  if (!Number.isSafeInteger(release?.id) || release.id <= 0 || release.tag_name !== context.tag) {
+    throw new Error("GitHub no devolvió una release válida para esta versión.");
+  }
+  // Read the authoritative ID, not the eventually consistent release listing, after creation.
+  const current = JSON.parse(
+    await run([
+      "api",
+      `repos/${context.repository}/releases/${release.id}`,
+      "--header",
+      "Cache-Control: no-cache",
+    ]),
+  );
+  if (current.id !== release.id || current.tag_name !== context.tag || !current.draft)
     throw new Error("La release ya no es un borrador. No se reemplazarán sus archivos.");
   await run([
     "release",
@@ -147,14 +164,16 @@ export async function createDraft(context, files, env = process.env, run = githu
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   try {
     const command = process.argv[2];
-    if (!["check", "draft"].includes(command))
-      throw new Error("Uso: node scripts/prepare-github-release.mjs check|draft");
+    if (!["check", "prepare", "draft"].includes(command))
+      throw new Error("Uso: node scripts/prepare-github-release.mjs check|prepare|draft");
     const context = await releaseContext();
     if (command === "check") {
       if (!process.env.TAURI_SIGNING_PRIVATE_KEY?.trim())
         throw new Error("Falta configurar el secreto TAURI_SIGNING_PRIVATE_KEY en GitHub Actions.");
       await checkDestination(context);
       console.log(`Destino y versión verificados: ${context.repository} ${context.tag}`);
+    } else if (command === "prepare") {
+      await prepareArtifacts(context);
     } else {
       await checkDestination(context);
       await createDraft(context, await prepareArtifacts(context));

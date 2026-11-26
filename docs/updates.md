@@ -91,6 +91,8 @@ El proceso verifica el destino público antes de compilar, ejecuta las comprobac
 
 Al terminar, abrí **Releases**, revisá el borrador y publicalo cuando quieras habilitar esa versión para los clientes. Podés repetir el workflow para reemplazar archivos de un borrador; si la versión ya está publicada, el proceso se detiene y exige aumentar la versión. Para un repositorio de distribución separado, el tag se crea sobre su rama predeterminada; el código privado no se adjunta a la release.
 
+Si falla el último paso de GitHub, el instalador firmado queda disponible durante 14 días en los **Artifacts** de la ejecución. Se conservan únicamente el instalador, su firma y el manifiesto cuando pudo generarse; las claves privadas y contraseñas no se incluyen. La caché de Rust también se guarda aunque falle un paso posterior, para reutilizar la compilación al volver a ejecutar el workflow.
+
 La primera versión con el endpoint y la clave pública configurados debe instalarse manualmente en cada PC. Las siguientes versiones publicadas con la misma clave podrán instalarse desde **Buscar actualizaciones**.
 
 ## Verificación antes de distribuir

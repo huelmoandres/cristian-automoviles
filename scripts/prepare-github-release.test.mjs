@@ -127,31 +127,59 @@ test("packages an ASCII installer and a cryptographically verified GitHub manife
 test("creates a draft from the source commit and allows rerunning its uploads", async () => {
   const calls = [];
   let exists = false;
+  const release = { id: 42, tag_name: context.tag, draft: true };
   const run = async (args) => {
     calls.push(args);
     if (args[0] === "api") {
-      if (!args[1].includes("/releases?")) return JSON.stringify(publicRepository);
-      return JSON.stringify([exists ? [{ tag_name: context.tag, draft: true }] : []]);
+      if (args.includes("POST")) {
+        exists = true;
+        return JSON.stringify(release);
+      }
+      if (args[1].includes("/releases?")) return JSON.stringify([exists ? [release] : []]);
+      if (args[1].endsWith("/releases/42")) return JSON.stringify(release);
+      return JSON.stringify(publicRepository);
     }
-    if (args[1] === "create") exists = true;
     return "";
   };
   const files = ["installer.exe", "installer.exe.sig", "latest.json"];
   const env = { GITHUB_REPOSITORY: context.repository, GITHUB_SHA: "a".repeat(40) };
   await createDraft(context, files, env, run);
   await createDraft(context, files, env, run);
-  const creates = calls.filter((args) => args[0] === "release" && args[1] === "create");
+  const creates = calls.filter((args) => args[0] === "api" && args.includes("POST"));
   assert.equal(creates.length, 1);
-  assert.ok(creates[0].includes("--draft"));
-  assert.equal(creates[0][creates[0].indexOf("--target") + 1], env.GITHUB_SHA);
+  assert.ok(creates[0].includes("draft=true"));
+  assert.ok(creates[0].includes(`target_commitish=${env.GITHUB_SHA}`));
   assert.equal(
     calls.filter((args) => args[1] === "upload" && args.includes("--clobber")).length,
     2,
   );
 });
 
+test("new drafts are rechecked by the returned ID while the release list remains stale", async () => {
+  const calls = [];
+  const release = { id: 123, tag_name: context.tag, draft: true };
+  await createDraft(
+    context,
+    ["installer.exe"],
+    {
+      GITHUB_REPOSITORY: context.repository,
+      GITHUB_SHA: "a".repeat(40),
+    },
+    async (args) => {
+      calls.push(args);
+      if (args[0] !== "api") return "";
+      if (args.includes("POST")) return JSON.stringify(release);
+      if (args[1].includes("/releases?")) return JSON.stringify([[]]);
+      if (args[1].endsWith("/releases/123")) return JSON.stringify(release);
+      return JSON.stringify(publicRepository);
+    },
+  );
+  assert.equal(calls.filter((args) => args[1]?.includes("/releases?")).length, 1);
+  assert.equal(calls.filter((args) => args[1]?.endsWith("/releases/123")).length, 1);
+  assert.equal(calls.filter((args) => args[1] === "upload").length, 1);
+});
+
 test("a draft published during preparation is never overwritten", async () => {
-  let views = 0;
   const writes = [];
   await assert.rejects(
     createDraft(context, ["installer.exe"], {}, async (args) => {
@@ -159,8 +187,11 @@ test("a draft published during preparation is never overwritten", async () => {
         writes.push(args);
         return "";
       }
-      if (!args[1].includes("/releases?")) return JSON.stringify(publicRepository);
-      return JSON.stringify([[{ tag_name: context.tag, draft: ++views === 1 }]]);
+      if (args[1].includes("/releases?"))
+        return JSON.stringify([[{ id: 42, tag_name: context.tag, draft: true }]]);
+      if (args[1].endsWith("/releases/42"))
+        return JSON.stringify({ id: 42, tag_name: context.tag, draft: false });
+      return JSON.stringify(publicRepository);
     }),
     /ya no es un borrador/,
   );
