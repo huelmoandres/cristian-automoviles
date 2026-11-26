@@ -1,3 +1,4 @@
+mod cloud_backup;
 mod commands;
 mod db;
 mod domain;
@@ -7,6 +8,7 @@ mod state;
 
 use tauri::Manager;
 
+use cloud_backup::CloudBackupState;
 use commands::{
     auth, backup, clients, collections, dashboard, payments, plans, sales, search, settings,
     updates, vehicles,
@@ -16,8 +18,14 @@ use state::AppState;
 
 const DB_FILE: &str = "cristian.db";
 
+fn initialize_tls() {
+    // The updater and S3 client enable different Rustls backends; select one before any HTTPS call.
+    let _ = rustls::crypto::ring::default_provider().install_default();
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    initialize_tls();
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_process::init())
@@ -32,6 +40,16 @@ pub fn run() {
             let media = MediaStore::new(dir.join(media::VEHICLE_IMAGES_DIR))?;
             vehicles::remove_orphan_images(&conn, &media)?;
             app.manage(AppState::new(conn, media));
+            app.manage(CloudBackupState::new(dir));
+            let handle = app.handle().clone();
+            std::thread::Builder::new()
+                .name("cloud-backups".into())
+                .spawn(move || loop {
+                    handle
+                        .state::<CloudBackupState>()
+                        .tick(&handle.state::<AppState>());
+                    std::thread::sleep(std::time::Duration::from_secs(60));
+                })?;
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -42,6 +60,12 @@ pub fn run() {
             auth::change_password,
             backup::export_backup,
             backup::import_backup,
+            cloud_backup::cloud_backup_status,
+            cloud_backup::configure_cloud_backup,
+            cloud_backup::disable_cloud_backup,
+            cloud_backup::run_cloud_backup,
+            cloud_backup::list_cloud_backups,
+            cloud_backup::restore_cloud_backup,
             updates::updater_status,
             settings::get_settings,
             settings::update_settings,
@@ -76,4 +100,17 @@ pub fn run() {
         ])
         .run(tauri::generate_context!())
         .expect("error al iniciar la aplicación");
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn https_client_initialization_is_idempotent_with_multiple_tls_backends() {
+        super::initialize_tls();
+        super::initialize_tls();
+        assert!(rustls::crypto::CryptoProvider::get_default().is_some());
+        let _client = rustls::ClientConfig::builder()
+            .with_root_certificates(rustls::RootCertStore::empty())
+            .with_no_client_auth();
+    }
 }

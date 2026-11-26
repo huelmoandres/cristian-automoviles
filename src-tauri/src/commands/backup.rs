@@ -12,6 +12,7 @@ use tempfile::{NamedTempFile, TempDir};
 use zip::write::SimpleFileOptions;
 use zip::{CompressionMethod, ZipArchive, ZipWriter};
 
+use crate::cloud_backup::CloudBackupState;
 use crate::db;
 use crate::error::{AppError, AppResult};
 use crate::media::{self, MediaStore};
@@ -406,6 +407,19 @@ pub fn export(state: &AppState, destination: &Path) -> AppResult<()> {
     export_snapshot(&conn, &state.media, destination)
 }
 
+/// A configured background job may run before login, but must never upload an empty installation.
+pub(crate) fn export_for_cloud(state: &AppState, destination: &Path) -> AppResult<()> {
+    let conn = state.conn()?;
+    let has_user: bool =
+        conn.query_row("SELECT EXISTS(SELECT 1 FROM users)", [], |row| row.get(0))?;
+    if !has_user {
+        return Err(AppError::validation(
+            "Primero creá el usuario o recuperá un respaldo existente",
+        ));
+    }
+    export_snapshot(&conn, &state.media, destination)
+}
+
 pub fn import(state: &AppState, source: &Path) -> AppResult<Option<String>> {
     // Check before expensive decompression, and again after obtaining the replacement lock.
     may_import(state, &*state.conn()?)?;
@@ -440,8 +454,12 @@ pub fn export_backup(state: State<'_, AppState>, destination_path: String) -> Ap
 }
 
 #[tauri::command(async)]
-pub fn import_backup(state: State<'_, AppState>, source_path: String) -> AppResult<Option<String>> {
-    import(&state, Path::new(&source_path))
+pub fn import_backup(
+    state: State<'_, AppState>,
+    cloud: State<'_, CloudBackupState>,
+    source_path: String,
+) -> AppResult<Option<String>> {
+    cloud.import_local(&state, Path::new(&source_path))
 }
 
 #[cfg(test)]
@@ -638,6 +656,51 @@ mod tests {
             Err(AppError::Unauthorized)
         ));
         assert_eq!(username(&target), "protected");
+    }
+
+    #[test]
+    fn automatic_snapshot_runs_before_login_and_preserves_wal_and_photos() {
+        let directory = TempDir::new().unwrap();
+        let source = state(&directory.path().join("source"));
+        source
+            .conn()
+            .unwrap()
+            .pragma_update(None, "wal_autocheckpoint", 0)
+            .unwrap();
+        populate(&source, "protected");
+        *source.session().unwrap() = None;
+        let archive = directory.path().join("automatic.zip");
+        export_for_cloud(&source, &archive).unwrap();
+        // Snapshot generation releases the database guard before encryption or network access.
+        assert!(source.conn().is_ok());
+        let target = state(&directory.path().join("target"));
+        import(&target, &archive).unwrap();
+        assert_eq!(username(&target), "protected");
+        assert_eq!(
+            target
+                .conn()
+                .unwrap()
+                .query_row("SELECT amount_cents FROM payments", [], |row| row
+                    .get::<_, i64>(0))
+                .unwrap(),
+            200000
+        );
+        let files = read_entries(&archive);
+        assert!(files
+            .iter()
+            .any(|(name, _)| name == "vehicle-images/photo.jpg"));
+        assert!(files
+            .iter()
+            .any(|(name, _)| name == "vehicle-images/photo_thumb.jpg"));
+    }
+
+    #[test]
+    fn automatic_snapshot_never_exports_an_empty_first_run() {
+        let directory = TempDir::new().unwrap();
+        let source = state(&directory.path().join("source"));
+        let archive = directory.path().join("automatic.zip");
+        assert!(export_for_cloud(&source, &archive).is_err());
+        assert!(!archive.exists());
     }
 
     #[test]

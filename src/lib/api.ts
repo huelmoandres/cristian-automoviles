@@ -4,6 +4,9 @@ import type { Client } from "@/bindings/Client";
 import type { ClientDetail } from "@/bindings/ClientDetail";
 import type { ClientInput } from "@/bindings/ClientInput";
 import type { ClientListItem } from "@/bindings/ClientListItem";
+import type { CloudBackupEntry } from "@/bindings/CloudBackupEntry";
+import type { CloudBackupInput } from "@/bindings/CloudBackupInput";
+import type { CloudBackupStatus } from "@/bindings/CloudBackupStatus";
 import type { Dashboard } from "@/bindings/Dashboard";
 import type { DueFilter } from "@/bindings/DueFilter";
 import type { DueInstallment } from "@/bindings/DueInstallment";
@@ -41,6 +44,13 @@ export const api = {
   updateSettings: (input: Settings) => invoke<Settings>("update_settings", { input }),
   exportBackup: (destinationPath: string) => invoke<void>("export_backup", { destinationPath }),
   importBackup: (sourcePath: string) => invoke<string | null>("import_backup", { sourcePath }),
+  cloudBackupStatus: () => invoke<CloudBackupStatus>("cloud_backup_status"),
+  configureCloudBackup: (input: CloudBackupInput) =>
+    invoke<CloudBackupStatus>("configure_cloud_backup", { input }),
+  disableCloudBackup: () => invoke<CloudBackupStatus>("disable_cloud_backup"),
+  runCloudBackup: () => invoke<CloudBackupStatus>("run_cloud_backup"),
+  listCloudBackups: () => invoke<CloudBackupEntry[]>("list_cloud_backups"),
+  restoreCloudBackup: (key: string) => invoke<string | null>("restore_cloud_backup", { key }),
   updaterStatus: () => invoke<UpdaterStatus>("updater_status"),
 
   // Vehículos

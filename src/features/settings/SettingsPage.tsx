@@ -2,6 +2,7 @@ import { ErrorState, Loading, PageHeader } from "@/components/ui/page";
 import { BusinessCard } from "./components/BusinessCard";
 import { BackupCard } from "./components/BackupCard";
 import { ChangePasswordCard } from "./components/ChangePasswordCard";
+import { CloudBackupCard } from "./components/CloudBackupCard";
 import { UpdatesCard } from "./components/UpdatesCard";
 import { useSettings } from "./hooks";
 
@@ -22,6 +23,7 @@ export function SettingsPage() {
         <ChangePasswordCard />
         <BackupCard />
         <UpdatesCard />
+        <CloudBackupCard />
       </div>
     </>
   );

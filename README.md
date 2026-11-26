@@ -40,7 +40,17 @@ En **Configuración → Respaldos → Crear respaldo**, elegí dónde guardar el
 
 Para cambiar de computadora, instalá la app en la nueva PC y elegí **Importar respaldo** en la pantalla de configuración inicial, o desde Configuración si ya creaste un usuario. Después ingresá con el usuario y la contraseña guardados en el respaldo. La importación **reemplaza** la instalación; no combina registros. El archivo se valida antes de restaurarlo y, si había un usuario, se crea una copia previa en `recovery-backups` dentro de la carpeta de datos de la app. Al terminar se muestra la ruta de esa copia.
 
-Los respaldos no están cifrados y contienen datos del negocio: guardalos en una ubicación privada, preferentemente fuera de la PC de trabajo. Los límites de importación son 512 MB de base de datos, 64 MB por imagen y 8 GB en total sin comprimir.
+Los respaldos manuales `.zip` no están cifrados y contienen datos del negocio: guardalos en una ubicación privada, preferentemente fuera de la PC de trabajo. Los límites de importación son 512 MB de base de datos, 64 MB por imagen y 8 GB en total sin comprimir.
+
+### Respaldos automáticos en Cloudflare R2
+
+En **Configuración → Respaldos en la nube**, conectá un bucket privado de Cloudflare R2. La app sube un respaldo completo cifrado cada **24 horas** mientras está abierta e intenta conservar las **últimas 30 copias**. Si estaba cerrada, suspendida o apagada, realiza el respaldo pendiente cuando vuelve a ejecutarse. Los errores de conexión se reintentan y se muestran junto con la última copia confirmada; una subida fallida no cuenta como respaldo.
+
+Las credenciales y la contraseña de cifrado se guardan en el almacén seguro del sistema operativo, fuera de la base y de los archivos de respaldo. Conservá también esos datos en un gestor de contraseñas al que puedas acceder desde otra computadora: sin la contraseña de cifrado no se puede recuperar la información.
+
+Para recuperar una PC perdida, elegí **Recuperar desde la nube** en la configuración inicial, conectá el mismo bucket con las credenciales y la contraseña originales y seleccioná una copia. La restauración usa las mismas validaciones y protecciones que la importación local. No hace falta crear un usuario nuevo.
+
+Este mecanismo mantiene la base local; no sincroniza computadoras. Puede perderse lo cargado después de la última copia confirmada (hasta 24 horas en condiciones normales, o más si la app no se ejecuta o hay errores). La [guía de respaldos en la nube](docs/cloud-backups.md) explica cómo preparar R2 y comprobar una recuperación.
 
 ## Actualizaciones desde la app
 

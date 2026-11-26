@@ -6,6 +6,7 @@ import { Logo } from "@/components/layout/Logo";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { BackupActions } from "@/features/settings/components/BackupActions";
+import { CloudBackupRecovery } from "@/features/settings/components/CloudBackupRecovery";
 import { useSignIn } from "./hooks";
 import { emptyCredentials, loginSchema, setupSchema, type CredentialsValues } from "./schema";
 
@@ -64,6 +65,7 @@ export function LoginPage({ firstRun }: { firstRun: boolean }) {
               Si venís de otra computadora, podés recuperar tus datos sin crear un usuario nuevo.
             </p>
             <BackupActions importOnly />
+            <CloudBackupRecovery />
           </div>
         )}
       </Card>
