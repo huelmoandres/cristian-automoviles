@@ -1,0 +1,68 @@
+<!--
+  Ícono de la app (fuente). Auto + moneda: venta de autos financiados.
+  Regenerar los íconos: renderizar a PNG 1024×1024 y correr `npm run tauri icon <png>`.
+  Colores: ink #0a0a0a y rojo de marca #d8182a (ver src/index.css).
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#262626"/>
+      <stop offset="1" stop-color="#0a0a0a"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.95" r="0.6">
+      <stop offset="0" stop-color="#d8182a" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#d8182a" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="coin" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ef4656"/>
+      <stop offset="1" stop-color="#b51221"/>
+    </linearGradient>
+    <linearGradient id="body" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#d4d4d8"/>
+    </linearGradient>
+    <clipPath id="squircle">
+      <rect x="100" y="100" width="824" height="824" rx="185"/>
+    </clipPath>
+  </defs>
+
+  <!-- Fondo (grilla de íconos de macOS: 824 px con 100 px de margen) -->
+  <g clip-path="url(#squircle)">
+    <rect x="100" y="100" width="824" height="824" fill="url(#bg)"/>
+    <rect x="100" y="100" width="824" height="824" fill="url(#glow)"/>
+  </g>
+
+  <g transform="translate(0 40)">
+    <!-- Auto (vista lateral) -->
+    <path fill="url(#body)" d="
+      M 205 640 L 205 600 Q 205 572 233 565
+      L 330 545 L 402 468 Q 418 452 442 452
+      L 598 452 Q 624 452 646 469 L 724 538
+      L 792 552 Q 820 559 820 590 L 820 638
+      Q 820 656 802 656 L 223 656 Q 205 656 205 640 Z"/>
+    <!-- Ventanillas -->
+    <path fill="#18181b" d="M 424 478 L 505 478 L 505 538 L 360 542 Z"/>
+    <path fill="#18181b" d="M 525 478 L 598 478 Q 614 478 627 489 L 682 538 L 525 538 Z"/>
+    <!-- Faro y luz trasera -->
+    <rect x="782" y="574" width="30" height="16" rx="6" fill="#fde68a"/>
+    <rect x="207" y="584" width="16" height="22" rx="5" fill="#d8182a"/>
+    <!-- Ruedas -->
+    <g>
+      <circle cx="330" cy="656" r="74" fill="#121212"/>
+      <circle cx="330" cy="656" r="58" fill="#27272a"/>
+      <circle cx="330" cy="656" r="27" fill="#d4d4d8"/>
+      <circle cx="696" cy="656" r="74" fill="#121212"/>
+      <circle cx="696" cy="656" r="58" fill="#27272a"/>
+      <circle cx="696" cy="656" r="27" fill="#d4d4d8"/>
+    </g>
+
+    <!-- Moneda (financiación) -->
+    <circle cx="712" cy="320" r="148" fill="#141414"/>
+    <circle cx="712" cy="320" r="130" fill="url(#coin)"/>
+    <circle cx="712" cy="320" r="104" fill="none" stroke="#ffffff" stroke-opacity="0.35" stroke-width="10"/>
+    <g fill="none" stroke="#ffffff" stroke-width="26" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M 756 268 Q 746 248 712 248 Q 672 248 672 282 Q 672 312 712 320 Q 754 328 754 360 Q 754 394 712 394 Q 674 394 664 370"/>
+      <path d="M 712 222 L 712 418"/>
+    </g>
+  </g>
+</svg>

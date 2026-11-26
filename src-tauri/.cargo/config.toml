@@ -1,0 +1,4 @@
+# ts-rs: los tipos se exportan al frontend con `cargo test export_bindings`
+[env]
+TS_RS_EXPORT_DIR = { value = "../src/bindings", relative = true }
+TS_RS_LARGE_INT = "number"
