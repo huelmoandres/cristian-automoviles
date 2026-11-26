@@ -4,6 +4,12 @@ En **Configuración → Actualizaciones**, el usuario puede buscar una versión,
 
 Modificar el código local no actualiza las computadoras: cada versión debe compilarse, firmarse y publicarse. Una instalación anterior que todavía no tiene este sistema necesita instalar manualmente la primera versión que lo incluya.
 
+## Configuración existente de este proyecto
+
+El repositorio de código y distribución es [huelmoandres/cristian-automoviles](https://github.com/huelmoandres/cristian-automoviles). El endpoint `https://github.com/huelmoandres/cristian-automoviles/releases/latest/download/latest.json`, la clave pública y la validación de versión firmada ya están configurados. Los secretos de firma también están configurados en GitHub Actions. La primera versión publicada con este mecanismo es [0.1.0](https://github.com/huelmoandres/cristian-automoviles/releases/tag/v0.1.0), para Windows x64.
+
+Para las siguientes versiones, reutilizá esa configuración y seguí **Crear versiones desde GitHub Actions**. La configuración inicial de abajo es una referencia para preparar otro entorno; no regeneres la clave de firma para una actualización normal.
+
 ## Configuración inicial
 
 Elegí un destino HTTPS público para `latest.json` y los instaladores. Puede ser un servidor propio o un repositorio público de GitHub Releases. La app del cliente no debe llevar un token de GitHub. El código fuente puede estar en otro repositorio privado; solo los archivos de distribución necesitan estar disponibles para los clientes.

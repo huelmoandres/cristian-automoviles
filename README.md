@@ -4,6 +4,8 @@ Aplicación de escritorio para la concesionaria: stock de vehículos, clientes, 
 
 **Stack:** Tauri 2 (Rust) · React 19 · TypeScript · Vite · Tailwind CSS v4 · SQLite (rusqlite) · react-hook-form + zod · TanStack Query · Radix.
 
+Las [instrucciones para agentes](AGENTS.md) resumen las reglas para mantener los respaldos, las actualizaciones y las publicaciones.
+
 ## Desarrollo
 
 ```bash
